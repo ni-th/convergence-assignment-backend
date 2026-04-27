@@ -1,9 +1,11 @@
 package edu.convergence.mapper;
 
 import edu.convergence.dto.customer.CustomerDTO;
+import edu.convergence.entity.customer.CustomerAddressEntity;
 import edu.convergence.entity.customer.CustomerEntity;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class CustomerMapper {
@@ -41,7 +43,11 @@ public class CustomerMapper {
         customerEntity.setFamilyMembers(customerDTO.getFamilyMembers() == null ? null : customerDTO.getFamilyMembers().stream()
                 .map(CustomerMapper::toEntity)
                 .collect(Collectors.toList()));
-        customerEntity.setAddresses(AddressMapper.toEntity(customerDTO.getAddresses()));
+        List<CustomerAddressEntity> addresses = AddressMapper.toEntity(customerDTO.getAddresses());
+        if (addresses != null) {
+            addresses.forEach(address -> address.setCustomer(customerEntity));
+        }
+        customerEntity.setAddresses(addresses);
         return customerEntity;
     }
 }

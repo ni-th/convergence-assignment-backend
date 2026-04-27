@@ -19,11 +19,11 @@ public class CustomerAddressEntity {
     private String addressLine1;
     private String addressLine2;
 
-    @ManyToOne
+    @ManyToOne(cascade = CascadeType.PERSIST)
     @JoinColumn(name = "city_id")
     private CityEntity city;
 
-    @ManyToOne
+    @ManyToOne(cascade = CascadeType.PERSIST)
     @JoinColumn(name = "country_id")
     private CountryEntity country;
 
