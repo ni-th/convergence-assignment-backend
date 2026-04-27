@@ -5,8 +5,12 @@ import edu.convergence.service.CustomerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import javax.validation.Valid;
 
 @RestController
 @RequestMapping("api/customer")
@@ -17,5 +21,10 @@ public class CustomerController {
     @GetMapping("/get-customer")
     public ResponseEntity<CustomerDTO> getCustomer() {
         return ResponseEntity.ok(new CustomerDTO());
+    }
+
+    @PostMapping("/create-customer")
+    public ResponseEntity<CustomerDTO> createCustomer(@Valid @RequestBody CustomerDTO customerDTO) {
+        return ResponseEntity.ok(customerService.save(customerDTO));
     }
 }
