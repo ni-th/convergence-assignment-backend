@@ -5,6 +5,7 @@ import edu.convergence.entity.customer.CustomerAddressEntity;
 import edu.convergence.entity.customer.CustomerEntity;
 import edu.convergence.entity.location.CityEntity;
 import edu.convergence.entity.location.CountryEntity;
+import edu.convergence.mapper.AddressMapper;
 import edu.convergence.mapper.CustomerMapper;
 import edu.convergence.repository.CityRepository;
 import edu.convergence.repository.CountryRepository;
@@ -14,7 +15,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -41,16 +44,35 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
+    @Transactional
     public CustomerDTO update(Long id, CustomerDTO customerDTO) {
-        customerRepository.findById(id)
+        CustomerEntity existingCustomer = customerRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Customer not found with id: " + id));
 
         validateUniqueNicForUpdate(id, customerDTO.getNic());
-        CustomerEntity customerEntity = CustomerMapper.toEntity(customerDTO);
-        customerEntity.setId(id);
-        resolveLocations(customerEntity.getAddresses());
+        existingCustomer.setName(customerDTO.getName());
+        existingCustomer.setDateOfBirth(customerDTO.getDateOfBirth());
+        existingCustomer.setNic(customerDTO.getNic());
+        existingCustomer.setMobileNumbers(customerDTO.getMobileNumbers() == null ? null : new ArrayList<>(customerDTO.getMobileNumbers()));
+        existingCustomer.setFamilyMembers(customerDTO.getFamilyMembers() == null ? null : customerDTO.getFamilyMembers().stream()
+                .map(CustomerMapper::toEntity)
+                .collect(java.util.stream.Collectors.toList()));
 
-        CustomerEntity updatedCustomer = customerRepository.save(customerEntity);
+        if (customerDTO.getAddresses() != null) {
+            List<CustomerAddressEntity> mappedAddresses = AddressMapper.toEntity(customerDTO.getAddresses());
+            resolveLocations(mappedAddresses);
+            if (existingCustomer.getAddresses() == null) {
+                existingCustomer.setAddresses(new ArrayList<>());
+            } else {
+                existingCustomer.getAddresses().clear();
+            }
+            for (CustomerAddressEntity address : mappedAddresses) {
+                address.setCustomer(existingCustomer);
+                existingCustomer.getAddresses().add(address);
+            }
+        }
+
+        CustomerEntity updatedCustomer = customerRepository.save(existingCustomer);
         return CustomerMapper.toDTO(updatedCustomer);
     }
 

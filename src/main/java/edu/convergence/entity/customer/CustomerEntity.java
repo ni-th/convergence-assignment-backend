@@ -28,7 +28,7 @@ public class CustomerEntity {
     @CollectionTable(name = "customer_mobile_numbers", joinColumns = @JoinColumn(name = "customer_id"))
     private List<String> mobileNumbers;
 
-    @OneToMany(mappedBy = "customer",cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CustomerAddressEntity> addresses;
 
     @ManyToMany
