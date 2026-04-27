@@ -9,3 +9,5 @@ public interface CustomerRepository extends JpaRepository<CustomerEntity, Long> 
     boolean existsByNicIgnoreCase(String nic);
     boolean existsByNicIgnoreCaseAndIdNot(String nic, Long id);
 }
+
+
