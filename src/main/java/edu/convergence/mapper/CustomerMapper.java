@@ -19,6 +19,7 @@ public class CustomerMapper {
         }
 
         CustomerDTO customerDTO = new CustomerDTO();
+        customerDTO.setId(customerEntity.getId());
         customerDTO.setName(customerEntity.getName());
         customerDTO.setDateOfBirth(customerEntity.getDateOfBirth());
         customerDTO.setNic(customerEntity.getNic());

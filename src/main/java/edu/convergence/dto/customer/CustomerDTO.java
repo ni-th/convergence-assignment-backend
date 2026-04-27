@@ -15,6 +15,7 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class CustomerDTO {
+    private Long id;
     @NotBlank(message = "Customer name is required")
     private String name;
     @Past(message = "Date of birth must be in the past")
