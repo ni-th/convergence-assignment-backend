@@ -26,6 +26,7 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public CustomerDTO save(CustomerDTO customerDTO) {
+        validateUniqueNicForCreate(customerDTO.getNic());
         CustomerEntity customerEntity = CustomerMapper.toEntity(customerDTO);
         resolveLocations(customerEntity.getAddresses());
         CustomerEntity savedCustomer = customerRepository.save(customerEntity);
@@ -44,6 +45,7 @@ public class CustomerServiceImpl implements CustomerService {
         customerRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Customer not found with id: " + id));
 
+        validateUniqueNicForUpdate(id, customerDTO.getNic());
         CustomerEntity customerEntity = CustomerMapper.toEntity(customerDTO);
         customerEntity.setId(id);
         resolveLocations(customerEntity.getAddresses());
@@ -99,6 +101,24 @@ public class CustomerServiceImpl implements CustomerService {
                     newCity.setCountry(country);
                     return cityRepository.save(newCity);
                 });
+    }
+
+    private void validateUniqueNicForCreate(String nic) {
+        String normalizedNic = normalizeNic(nic);
+        if (customerRepository.existsByNicIgnoreCase(normalizedNic)) {
+            throw new IllegalArgumentException("NIC already exists");
+        }
+    }
+
+    private void validateUniqueNicForUpdate(Long id, String nic) {
+        String normalizedNic = normalizeNic(nic);
+        if (customerRepository.existsByNicIgnoreCaseAndIdNot(normalizedNic, id)) {
+            throw new IllegalArgumentException("NIC already exists");
+        }
+    }
+
+    private String normalizeNic(String nic) {
+        return nic == null ? "" : nic.trim();
     }
 
     private boolean isBlank(String value) {

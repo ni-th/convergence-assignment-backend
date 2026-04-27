@@ -11,13 +11,17 @@ import java.util.List;
 @Getter
 @Setter
 @Entity
-@Table(name = "customer")
+@Table(name = "customer", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_customer_nic", columnNames = "nic")
+})
 public class CustomerEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String name;
     private LocalDate dateOfBirth;
+
+    @Column(nullable = false, unique = true)
     private String nic;
 
     @ElementCollection
