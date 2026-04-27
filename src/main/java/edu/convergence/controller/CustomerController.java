@@ -20,11 +20,6 @@ import javax.validation.Valid;
 public class CustomerController {
     private final CustomerService customerService;
 
-    @GetMapping("/get-customer")
-    public ResponseEntity<CustomerDTO> getCustomer() {
-        return ResponseEntity.ok(new CustomerDTO());
-    }
-
     @GetMapping("/{id}")
     public ResponseEntity<CustomerDTO> getCustomerById(@PathVariable Long id) {
         return ResponseEntity.ok(customerService.findById(id));
