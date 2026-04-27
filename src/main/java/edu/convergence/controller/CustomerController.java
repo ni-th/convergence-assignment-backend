@@ -3,6 +3,9 @@ package edu.convergence.controller;
 import edu.convergence.dto.customer.CustomerDTO;
 import edu.convergence.service.CustomerService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,6 +22,11 @@ import javax.validation.Valid;
 @RequiredArgsConstructor
 public class CustomerController {
     private final CustomerService customerService;
+
+    @GetMapping
+    public ResponseEntity<Page<CustomerDTO>> getCustomers(@PageableDefault(sort = "id") Pageable pageable) {
+        return ResponseEntity.ok(customerService.getCustomers(pageable));
+    }
 
     @GetMapping("/{id}")
     public ResponseEntity<CustomerDTO> getCustomerById(@PathVariable Long id) {

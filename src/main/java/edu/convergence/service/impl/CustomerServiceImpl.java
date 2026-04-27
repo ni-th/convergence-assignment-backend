@@ -11,6 +11,8 @@ import edu.convergence.repository.CountryRepository;
 import edu.convergence.repository.CustomerRepository;
 import edu.convergence.service.CustomerService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -48,6 +50,11 @@ public class CustomerServiceImpl implements CustomerService {
 
         CustomerEntity updatedCustomer = customerRepository.save(customerEntity);
         return CustomerMapper.toDTO(updatedCustomer);
+    }
+
+    @Override
+    public Page<CustomerDTO> getCustomers(Pageable pageable) {
+        return customerRepository.findAll(pageable).map(CustomerMapper::toDTO);
     }
 
     private void resolveLocations(List<CustomerAddressEntity> addresses) {
