@@ -1,6 +1,8 @@
 package edu.convergence.controller;
 
 import edu.convergence.dto.customer.CustomerDTO;
+import edu.convergence.entity.upload.UploadStatusEntity;
+import edu.convergence.repository.UploadStatusRepository;
 import edu.convergence.service.CustomerBulkService;
 import edu.convergence.service.CustomerService;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +15,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.validation.Valid;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("api/customer")
@@ -21,6 +25,7 @@ import javax.validation.Valid;
 public class CustomerController {
     private final CustomerService customerService;
     private final CustomerBulkService customerBulkService;
+    private final UploadStatusRepository uploadStatusRepository;
 
     @GetMapping
     public ResponseEntity<Page<CustomerDTO>> getCustomers(@PageableDefault(sort = "id") Pageable pageable) {
@@ -42,9 +47,22 @@ public class CustomerController {
         return ResponseEntity.ok(customerService.update(id, customerDTO));
     }
 
-    @PostMapping("/upload")
-    public ResponseEntity<String> uploadExcel(@RequestParam("file") MultipartFile file) {
-        customerBulkService.processExcel(file);
-        return new ResponseEntity<String>("Upload successful", HttpStatus.OK);
+    @PostMapping("/upload-async")
+    public ResponseEntity<Map<String, String>> uploadExcelAsync(@RequestParam("file") MultipartFile file) {
+        String uploadId = customerBulkService.uploadAsync(file);
+        Map<String, String> response = new HashMap<>();
+        response.put("uploadId", uploadId);
+        response.put("message", "Upload started. Use upload ID to track progress.");
+        return new ResponseEntity<>(response, HttpStatus.ACCEPTED);
+    }
+
+    @GetMapping("/upload-status/{uploadId}")
+    public ResponseEntity<?> getUploadStatus(@PathVariable String uploadId) {
+        UploadStatusEntity status = uploadStatusRepository.findByUploadId(uploadId)
+                .orElse(null);
+        if (status == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(status);
     }
 }

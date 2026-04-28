@@ -18,7 +18,7 @@ public class GlobleExceptionHandler {
         Map<String, String> errors = new HashMap<>();
 
         ex.getBindingResult().getFieldErrors().forEach(error -> {
-            errors.put(error.getField(), error.getDefaultMessage());
+            errors.put("message", error.getDefaultMessage());
         });
 
         return ResponseEntity.badRequest().body(errors);
