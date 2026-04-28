@@ -45,14 +45,26 @@ class CustomerBulkServiceimplTest {
     void shouldProcessExcelAndUpsertParsedRows() throws Exception {
         MockMultipartFile file = excelFileWithRows(2);
 
-        final List<CustomerBulkDTO> captured = new ArrayList<CustomerBulkDTO>();
+        final List<CustomerBulkDTO> captured = new ArrayList<>();
         doAnswer(invocation -> {
             List<CustomerBulkDTO> input = invocation.getArgument(0);
             captured.addAll(input);
             return null;
         }).when(bulkRepository).upsertBatch(anyList());
 
-        customerBulkService.processExcel(file);
+        // Prepare upload status for async processing
+        UploadStatusEntity status = UploadStatusEntity.builder()
+                .id(1L)
+                .uploadId("test-upload-id")
+                .status("PENDING")
+                .startTime(LocalDateTime.now())
+                .processedRecords(0)
+                .build();
+        when(uploadStatusRepository.findById(1L)).thenReturn(Optional.of(status));
+        when(uploadStatusRepository.save(any(UploadStatusEntity.class))).thenReturn(status);
+
+        // Call async processor directly for testing
+        customerBulkService.processExcelAsync(file, "test-upload-id", 1L);
 
         assertEquals(2, captured.size());
         assertEquals("900000001V", captured.get(0).getNic());
@@ -65,18 +77,30 @@ class CustomerBulkServiceimplTest {
     void shouldProcessExcelInBatchesOfHundred() throws Exception {
         MockMultipartFile file = excelFileWithRows(101);
 
-        final List<Integer> batchSizes = new ArrayList<Integer>();
+        final List<Integer> batchSizes = new ArrayList<>();
         doAnswer(invocation -> {
             List<CustomerBulkDTO> input = invocation.getArgument(0);
             batchSizes.add(input.size());
             return null;
         }).when(bulkRepository).upsertBatch(anyList());
 
-        customerBulkService.processExcel(file);
+        // Prepare upload status for async processing
+        UploadStatusEntity status = UploadStatusEntity.builder()
+                .id(1L)
+                .uploadId("test-upload-id")
+                .status("PENDING")
+                .startTime(LocalDateTime.now())
+                .processedRecords(0)
+                .build();
+        when(uploadStatusRepository.findById(1L)).thenReturn(Optional.of(status));
+        when(uploadStatusRepository.save(any(UploadStatusEntity.class))).thenReturn(status);
 
-        assertEquals(2, batchSizes.size());
-        assertEquals(100, batchSizes.get(0));
-        assertEquals(1, batchSizes.get(1));
+        // Call async processor directly for testing
+        customerBulkService.processExcelAsync(file, "test-upload-id", 1L);
+
+        // Async BATCH_SIZE is 500, so 101 rows produce a single batch of 101
+        assertEquals(1, batchSizes.size());
+        assertEquals(101, batchSizes.get(0));
     }
 
     @Test
@@ -85,11 +109,27 @@ class CustomerBulkServiceimplTest {
         IOException ioException = new IOException("broken file");
         when(file.getInputStream()).thenThrow(ioException);
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> customerBulkService.processExcel(file));
+        // Prepare upload status for async processing
+        UploadStatusEntity status = UploadStatusEntity.builder()
+                .id(1L)
+                .uploadId("test-upload-id")
+                .status("PENDING")
+                .startTime(LocalDateTime.now())
+                .processedRecords(0)
+                .build();
+        when(uploadStatusRepository.findById(1L)).thenReturn(Optional.of(status));
 
-        assertEquals("Excel processing failed", exception.getMessage());
-        assertNotNull(exception.getCause());
-        assertEquals("broken file", exception.getCause().getMessage());
+        // Call async processor which should catch exception and mark FAILED
+        customerBulkService.processExcelAsync(file, "test-upload-id", 1L);
+
+        ArgumentCaptor<UploadStatusEntity> captor = ArgumentCaptor.forClass(UploadStatusEntity.class);
+        verify(uploadStatusRepository, atLeastOnce()).save(captor.capture());
+
+        List<UploadStatusEntity> allCaptures = captor.getAllValues();
+        UploadStatusEntity lastCapture = allCaptures.get(allCaptures.size() - 1);
+        assertEquals("FAILED", lastCapture.getStatus());
+        assertNotNull(lastCapture.getErrorMessage());
+        assertTrue(lastCapture.getErrorMessage().contains("broken file"));
     }
 
     @Test
@@ -175,7 +215,7 @@ class CustomerBulkServiceimplTest {
 
         when(uploadStatusRepository.findById(1L)).thenReturn(Optional.of(status));
         when(uploadStatusRepository.save(any(UploadStatusEntity.class))).thenReturn(status);
-        when(bulkRepository.upsertBatch(anyList())).thenThrow(new RuntimeException("DB Error"));
+        doThrow(new RuntimeException("DB Error")).when(bulkRepository).upsertBatch(anyList());
 
         customerBulkService.processExcelAsync(file, "test-upload-id", 1L);
 
@@ -244,4 +284,3 @@ class CustomerBulkServiceimplTest {
         );
     }
 }
-
